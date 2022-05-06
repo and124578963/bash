@@ -72,6 +72,7 @@ for id in ${listIDs[*]} ; do
     fi
 
     campagin=`grep -o "\-v \-\-.*'" temp_file | grep -o "[A-Z0-9]*"`
+    check_camp=$?
     declare -a listCampagin
     for Camp in $campagin ; do
         if [[ ! " ${listCampagin[*]} " =~ " ${Camp} " ]]; then
@@ -96,8 +97,11 @@ for id in ${listIDs[*]} ; do
     nameJob=${nameJob/[\"]/}
     start="${listDate[0]}"
     stop="${listDate[-1]}"
-
-
+   # 
+    if [ ${check_camp} -eq 1 ] && [ "${status}" != "${YEL}See next log${NC}" ]; then
+        listCampagin=( "Stored process" )
+    fi
+    
     echo -e campaign=${YEL}${listCampagin[*]}${NC} Job=$nameJob status=$status user=${listUser[*]} start=$start stop=$stop log_id=$id
     echo
     unset listCampagin nameJob listStatus listUser start stop id
