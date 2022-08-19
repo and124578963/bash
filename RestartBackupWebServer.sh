@@ -14,8 +14,8 @@
 ##                                                                                     ##
 #########################################################################################
 
-SERVICEDIR="/opt/sas/SASConfigMid/Lev1/Web/WebAppServer/" # путь к папке с веб серверам SAS
-LOGFILE="/opt/sas/SASHome/cron/logs/RestartBackupWebServer.log" # путь к логу, куда сохранять действия скрипта
+SERVICEDIR="/glowbyte/sas/sasconfig/Lev1/Web/WebAppServer/" # путь к папке с веб серверам SAS
+LOGFILE="/glowbyte/temp/AndreyExportCI/test.log" # путь к логу, куда сохранять действия скрипта
 
 # Функция записи в лог
 # $1 сообщение для лога

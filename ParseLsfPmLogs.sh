@@ -12,58 +12,43 @@
 LOGSDIR="/glowbyte/sas/pm/work/history/" # путь к pm/work/history/
 
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YEL='\033[1;33m'
-NC='\033[0m'
-
-#получение списка ЛОГОВ
 cd $LOGSDIR
-declare -a listOfLogs
-for file in * ; do
-    listOfLogs+=( "$file" )
-done
-
-#проверка верно ли передано имя лога
-if [[ ! " ${listOfLogs[*]} " =~ " ${1} " ]]; then
-    filelogger "Assigned LOG ${1} dosen't exist!"
-    echo 'Allowed LOGS:'
-    ls -rtl
-    exit 1
-fi
+lastLog=`ls -t1 | sed "1q;d"`
 
 # находим все id процессов
 declare -a listIDs
-touch temp_file
-awk '{print $4}' ${1} | grep -o '\"[[:digit:]]*\:' | grep -o '[[:digit:]]*' > temp_file
+touch /tmp/temp_file_q
+awk '{print $4}' ${lastLog} | grep -o '\"[[:digit:]]*\:' | grep -o '[[:digit:]]*' > /tmp/temp_file_q
 while read -r id ; do
     if [[ ! " ${listIDs[*]} " =~ " ${id} " ]]; then
         listIDs+=( "$id" )
     fi
-done < temp_file
+done < /tmp/temp_file_q
 # echo "${listIDs[*]}"
 
 for id in ${listIDs[*]} ; do
     # получаем строки с одним id процесса 
     declare -a listDate
-    grep -e "\"$id\:" ${1} > temp_file
+    declare -a listTimestamp
+    grep -e "\"$id\:" ${lastLog} > /tmp/temp_file_q
     while read -r str ; do
         # echo $str
         date=`echo $str | awk '{print $3}' | grep -o '[[:digit:]]*'`
         dateNorm=`date -d @$date`
         nameJob=`echo $str | awk '{print $4}' | grep -o '\:.*\"' `
         listDate+=( "$dateNorm" )
-    done < temp_file
+	listTimestamp+=( "$date" )
+    done < /tmp/temp_file_q
 
 
-    statuses=`grep -o 'Status=[[:digit:]]*' temp_file | grep -o "[[:digit:]]*"`
+    statuses=`grep -o 'Status=[[:digit:]]*' /tmp/temp_file_q | grep -o "[[:digit:]]*"`
     check=$?
     if [ ${check} -eq 1 ]; then
-        status="${YEL}See next log${NC}"
+        status="None"
     else
         for status in ${statuses}; do
             if [[ " 0 " = " ${status} " ]]; then
-                status="${GREEN}OK${NC} (${statuses})"
+                status="OK (${statuses})"
             else
                 status="ERROR (${statuses})"
                 break
@@ -71,7 +56,7 @@ for id in ${listIDs[*]} ; do
         done
     fi
 
-    campagin=`grep -o "\-v \-\-.*'" temp_file | grep -o "[A-Z0-9]*"`
+    campagin=`grep -o "\-v \-\-.*'" /tmp/temp_file_q | grep -o "[A-Z0-9]*"`
     check_camp=$?
     declare -a listCampagin
     for Camp in $campagin ; do
@@ -81,7 +66,7 @@ for id in ${listIDs[*]} ; do
     done
     # echo ${listCampagin[*]}
 
-    users=`grep -o " quotequote[[:graph:]]*@[[:graph:]]*quotequote " temp_file`
+    users=`grep -o " quotequote[[:graph:]]*@[[:graph:]]*quotequote " /tmp/temp_file_q`
     declare -a listUser
     for usr in $users ; do
         usr=${usr/quotequote/}
@@ -97,16 +82,16 @@ for id in ${listIDs[*]} ; do
     nameJob=${nameJob/[\"]/}
     start="${listDate[0]}"
     stop="${listDate[-1]}"
+    let duration=(${listTimestamp[-1]} - ${listTimestamp[0]}) 
    # 
-    if [ ${check_camp} -eq 1 ] && [ "${status}" != "${YEL}See next log${NC}" ]; then
+    if [ ${check_camp} -eq 1 ] && [ "${status}" != "None" ]; then
         listCampagin=( "Stored process" )
     fi
     
-    echo -e campaign=${YEL}${listCampagin[*]}${NC} Job=$nameJob status=$status user=${listUser[*]} start=$start stop=$stop log_id=$id
-    echo
-    unset listCampagin nameJob listStatus listUser start stop id
+    echo -e "${listCampagin[*]} ;; $nameJob ;; $statuses ;; ${listUser[*]} ;; $start ;; $stop ;; $duration ;/; "
+    unset listCampagin nameJob listStatus listUser start stop id listDate listTimestamp
 done
-rm temp_file
+rm /tmp/temp_file_q
 exit 0
 
 
