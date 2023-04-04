@@ -9,7 +9,7 @@
 
 PATH_TO_LOGS="/log/stpserver_logs/"
 
-
+AMOUNT_STRING_BEFORE=15
 
 cd $PATH_TO_LOGS
 for file in * ; do
@@ -35,17 +35,21 @@ for file in * ; do
                end=`sed -n "${last}{p;q}" ./$file | grep -o T..:..:.. | grep -o ..:..:..`
                 
                if [ ${#end} -eq 0 ]; then
-                 end=`sed -n "${row}{p;q}" ./$file | grep -o T..:..:.. | grep -o ..:..:..`
+                 let last=(${row} + 1)
+                 end=`sed -n "${last}{p;q}" ./$file | grep -o T..:..:.. | grep -o ..:..:..`
+               fi
+
+               if [ ${#end} -eq 0 ]; then
+                  end=`sed -n "${row}{p;q}" ./$file | grep -o T..:..:.. | grep -o ..:..:..`
                fi
               
                beginTime=`date -d"$begin" +%s`
                endTime=`date -d"$end" +%s`
                let duration=(${endTime} - ${beginTime})
                if (( $duration > 600 )); then
-                   for i in $(seq 10 -1 1);do
-                      let resultRow=(${row} - i)
-                      sed -n "${resultRow}{p;q}" ./$file
-                   done;
+                   let firstString=(${row} - $AMOUNT_STRING_BEFORE) 
+                   sed -n "{${firstString},${row}p;${row}q}" ./$file
+
             
                    #grep -B 10 "Session Purge for .* blocked by running" ./$file | grep -v "Session Purge for .* blocked by running"
                    let minute=(${duration} / 60)
